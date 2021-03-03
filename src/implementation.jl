@@ -21,6 +21,8 @@ second(b::Bicomplex) = b.im
 const imim  = Bicomplex(0 + 0im, 1 + 0im)
 
 Base.isequal(a::Bicomplex, b::Complex) = (first(a) == first(b)) && (second(a) == second(b))
+Base.isfinite(a::Bicomplex) = isfinite(first(a)) && isfinite(second(a))
+Base.isnan(a::Bicomplex) = isnan(first(a)) || isnan(second(a))
 
 const e⃗2 = Bicomplex(1 + 0im, 0 + im)
 const e⃗ᵀ2 = Bicomplex(1 + 0im, 0 - im)
