@@ -11,6 +11,14 @@ Random.seed!(0)
   @test a + a == 2 * a
   @test isapprox(a / a, unit, rtol=10eps(), atol=10eps())
   @test isapprox((a * a) / a / a, unit, rtol=10eps(), atol=10eps())
+  @test jm * jm == -unit
+  @test jm^2 == -unit
+  @test jm / jm == unit
+end
+
+@testset "floating point" begin
+  z = Bicomplex(randn(ComplexF64, 2)...)
+  @test isapprox(1 / (1 / z), z, rtol=0, atol=eps())
 end
 
 @testset "exp sin cos log tan" begin
@@ -29,11 +37,13 @@ end
 
 @testset "derivative" begin
   f(x) = sin(x) * exp(-x^2) / x^3
-  g(x) = (cos(x) / x^3 - 2 * x * sin(x) / x^3 - 3 * sin(x) / x^4 ) * exp(-x^2)
+  g(x) = (cos(x) - 2 * x * sin(x) - 3 * sin(x) / x) / x^3 * exp(-x^2)
   
   for z ∈ (1.0 + im, 1.0 + 0im, 0.0 + im, rand(ComplexF64), -rand(ComplexF64),
            rand(Float64) - im * rand(Float64), -rand(Float64) + im * rand(Float64))
     @test isapprox(BiComplex.derivative(f, z), g(z), rtol=sqrt(eps()), atol=10eps())
+    fop(x) = BiComplex._op(f, x)
+    @test isapprox(BiComplex.derivative(fop, z), g(z), rtol=sqrt(eps()), atol=10eps())
     @test isapprox(BiComplex.derivative(exp, z), exp(z), rtol=sqrt(eps()), atol=10eps())
     @test isapprox(BiComplex.derivative(cos, z),-sin(z), rtol=2sqrt(eps()),
                    atol=10eps()) # annoyingly needs rtol of 2 sqrt eps
@@ -47,6 +57,11 @@ end
       @test isapprox(BiComplex.derivative(atan, z), 1/(1+z^2), rtol=sqrt(eps()), atol=10eps())
     end
   end
+end
+
+@testset "Promotion conversion, etc" begin
+  @test Bicomplex(0.0 + 0im, 1 + 0im) == jm
+  @test jm^2 == -1
 end
 
 end

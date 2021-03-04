@@ -2,7 +2,7 @@ module BiComplex
 
 include("implementation.jl")
 
-export Bicomplex, derivative, imim, second
+export Bicomplex, derivative, jm, second
 
 end
 

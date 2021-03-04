@@ -4,23 +4,40 @@ using AutoHashEquals
   re::Complex{T}
   im::Complex{T}
 end
+Bicomplex(a::Complex{T}, b::Complex{U}) where {T,U} = Bicomplex(promote(a, b)...)
+function Bicomplex{T}(a::Bicomplex{U}) where {T,U}
+  V = complex(promote_type(T, U))
+  return Bicomplex(V(first(a)), V(second(a)))
+end
 
-function Base.convert(::Type{Bicomplex{T}}, x::Real) where T
-  return Bicomplex(T(x) + 0im, zero(T) + 0im)
+function Base.convert(::Type{Bicomplex{T}}, x::Bicomplex{U}) where {T, U}
+  V = complex(promote_type(T, U))
+  return Bicomplex(V(x.re), V(x.im))
 end
-function Base.convert(::Type{Bicomplex{T}}, x::Complex) where T
-  return Bicomplex(T(x), zero(T))
+
+function Base.convert(::Type{Bicomplex{T}}, x::U) where {T, U<:Number}
+  V = complex(promote_type(T, U))
+  return Bicomplex(V(x), V(0))
 end
-function Base.promote_rule(::Type{Bicomplex{T}}, ::Type{U}) where {T, U<:Real}
-  return Bicomplex{promote_type(T, U)}
-end
+
+const jm = Bicomplex(Complex(false, false), Complex(true, false))
 
 Base.first(b::Bicomplex) = b.re
 second(b::Bicomplex) = b.im
 
-const imim  = Bicomplex(0 + 0im, 1 + 0im)
+function Base.promote_rule(::Type{Bicomplex{T}}, ::Type{Bicomplex{U}}
+    ) where {T<:Real, U<:Real}
+  return Bicomplex{promote_type(T, U)}
+end
+function Base.promote_rule(::Type{Bicomplex{T}}, ::Type{U}
+    ) where {T<:Real, U<:Number}
+  return Bicomplex{promote_type(T, real(U))}
+end
 
-Base.isequal(a::Bicomplex, b::Complex) = (first(a) == first(b)) && (second(a) == second(b))
+#Base.widen(::Type{Bicomplex{T}}) where {T} = Bicomplex{widen(T)}
+#Base.float(::Type{Bicomplex{T}}) where {T} = Bicomplex{float(T)}
+#Base.float(::Type{Bicomplex{T}}) where {T<:AbstractFloat} = Bicomplex{T}
+
 Base.isfinite(a::Bicomplex) = isfinite(first(a)) && isfinite(second(a))
 Base.isnan(a::Bicomplex) = isnan(first(a)) || isnan(second(a))
 
@@ -46,7 +63,6 @@ Base.abs(a::Bicomplex) = sqrt(abs2(first(a)) + abs2(second(a)))
 Base.rand(::Type{Bicomplex{T}}) where {T} = Bicomplex(rand(T), rand(T))
 Base.randn(::Type{Bicomplex{T}}) where {T} = Bicomplex(randn(T), randn(T))
 
-
 Base.:+(a::Bicomplex, b::Bicomplex) = Bicomplex(first(a) + first(b), second(a) + second(b))
 Base.:-(a::Bicomplex, b::Bicomplex) = Bicomplex(first(a) - first(b), second(a) - second(b))
 Base.:+(a::Bicomplex, b::Number) = Bicomplex(first(a) + b, second(a))
@@ -54,7 +70,7 @@ Base.:-(a::Bicomplex, b::Number) = Bicomplex(first(a) - b, second(a))
 Base.:-(a::Number, b::Bicomplex) = Bicomplex(a - first(b), -second(b))
 Base.:-(a::Bicomplex) = Bicomplex(-first(a), -second(a))
 
-Base.angle(a::Bicomplex) = atan(second(a) / first(a))
+Base.:angle(a::Bicomplex) = atan(second(a) / first(a))
 
 function Base.:*(a::Bicomplex, b::Bicomplex)
   return Bicomplex(first(a) * first(b) - second(a) * second(b), first(a) * second(b) + second(a) * first(b))
@@ -62,13 +78,14 @@ end
 Base.:*(a::Bicomplex, b::Number) = Bicomplex(first(a) * b, second(a) * b)
 Base.:*(a::Number, b::Bicomplex) = b * a
 
-#Base.inv(a::Bicomplex) = conj(a) / (first(a)^2 + second(a)^2)
-Base.:/(a::Bicomplex, b::Bicomplex) = a * _op(inv, b)#a * inv(b)
-Base.:/(a::Number, b::Bicomplex) = a * _op(inv, b)#a * inv(b)
+#Base.inv(a::Bicomplex) = _op(inv, a) # === conj(a) / (first(a)^2 + second(a)^2)
+Base.:/(a::Bicomplex, b::Bicomplex) = a * _op(inv, b)
+Base.:/(a::Number, b::Bicomplex) = a * _op(inv, b)
+
 
 #Base.exp(a::Bicomplex) = exp(first(a)) * Bicomplex(cos(second(a)), sin(second(a)))
-#Base.cos(a::Bicomplex) = (exp(imim * a) + exp(-imim * a)) / 2
-#Base.sin(a::Bicomplex) = (exp(imim * a) - exp(-imim * a)) / 2 / imim
+#Base.cos(a::Bicomplex) = (exp(jm * a) + exp(-jm * a)) / 2
+#Base.sin(a::Bicomplex) = (exp(jm * a) - exp(-jm * a)) / 2 / jm
 #Base.tan(a::Bicomplex) = sin(a) / cos(a)
 Base.:^(a::Bicomplex, x::AbstractFloat) = _op(z -> z^x, a)
 Base.exp(a::Bicomplex) = _op(exp, a)
@@ -82,10 +99,10 @@ Base.log(a::Bicomplex) = _op(log, a)
 Base.acos(a::Bicomplex) = _op(acos, a)
 Base.asin(a::Bicomplex) = _op(asin, a)
 Base.atan(a::Bicomplex) = _op(atan, a)
-#Base.acos(a::Bicomplex) = - imim * log(a + sqrt(a^2 - 1))
-#Base.asin(a::Bicomplex) = - imim * log(imim * a + sqrt(1 - a^2))
+#Base.acos(a::Bicomplex) = - jm * log(a + sqrt(a^2 - 1))
+#Base.asin(a::Bicomplex) = - jm * log(jm * a + sqrt(1 - a^2))
 #Base.atan(a::Bicomplex) = asin(a / sqrt(1 + a^2))
-#Base.atan(a::Bicomplex) = imim * log((1 + imim * a) / (1 - imim * a))
+#Base.atan(a::Bicomplex) = jm * log((1 + jm * a) / (1 - jm * a))
 
 function derivative(f::T, x::Complex{U}, h=sqrt(eps(U))) where {T,U<:Real}
   return (f(Bicomplex(x, Complex(h, 0)))).im / h
