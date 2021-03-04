@@ -61,6 +61,10 @@ end
 
 @testset "Promotion conversion, etc" begin
   @test Bicomplex(0.0 + 0im, 1 + 0im) == jm
+  @test Bicomplex(0.0 + 0im, 0 + 1im) == jm * im
+  @test Bicomplex(0.0 + 1im, 1 + 0im) == jm + im
+  @test jm * im == im * jm
+  @test (jm * im)^2 == 1
   @test jm^2 == -1
 end
 
