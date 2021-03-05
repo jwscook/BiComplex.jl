@@ -34,10 +34,6 @@ function Base.promote_rule(::Type{Bicomplex{T}}, ::Type{U}
   return Bicomplex{promote_type(T, real(U))}
 end
 
-#Base.widen(::Type{Bicomplex{T}}) where {T} = Bicomplex{widen(T)}
-#Base.float(::Type{Bicomplex{T}}) where {T} = Bicomplex{float(T)}
-#Base.float(::Type{Bicomplex{T}}) where {T<:AbstractFloat} = Bicomplex{T}
-
 Base.isfinite(a::Bicomplex) = isfinite(first(a)) && isfinite(second(a))
 Base.isnan(a::Bicomplex) = isnan(first(a)) || isnan(second(a))
 
@@ -54,7 +50,7 @@ end
 const e⃗ = e⃗2 / 2
 const e⃗ᵀ = e⃗ᵀ2 / 2
 
-idempotentelements(a::Complex, b::Complex) = (a - im * b, a + im * b)
+idempotentelements(a::Complex, b::Complex) = (imb = im * b; (a - imb, a + imb))
 idempotentelements(a::Bicomplex) = idempotentelements(first(a), second(a))
 
 Base.conj(a::Bicomplex) = Bicomplex(first(a), -second(a))
@@ -78,34 +74,34 @@ end
 Base.:*(a::Bicomplex, b::Number) = Bicomplex(first(a) * b, second(a) * b)
 Base.:*(a::Number, b::Bicomplex) = b * a
 
-#Base.inv(a::Bicomplex) = _op(inv, a) # === conj(a) / (first(a)^2 + second(a)^2)
 Base.:/(a::Bicomplex, b::Bicomplex) = a * _op(inv, b)
 Base.:/(a::Number, b::Bicomplex) = a * _op(inv, b)
 
-
-#Base.exp(a::Bicomplex) = exp(first(a)) * Bicomplex(cos(second(a)), sin(second(a)))
-#Base.cos(a::Bicomplex) = (exp(jm * a) + exp(-jm * a)) / 2
-#Base.sin(a::Bicomplex) = (exp(jm * a) - exp(-jm * a)) / 2 / jm
-#Base.tan(a::Bicomplex) = sin(a) / cos(a)
 Base.:^(a::Bicomplex, x::AbstractFloat) = _op(z -> z^x, a)
-Base.exp(a::Bicomplex) = _op(exp, a)
-Base.sqrt(a::Bicomplex) = _op(sqrt, a)
-Base.cbrt(a::Bicomplex) = _op(cbrt, a)
-Base.cos(a::Bicomplex) = _op(cos, a)
-Base.sin(a::Bicomplex) = _op(sin, a)
-Base.tan(a::Bicomplex) = _op(tan, a)
-Base.log(a::Bicomplex) = _op(log, a)
-
-Base.acos(a::Bicomplex) = _op(acos, a)
-Base.asin(a::Bicomplex) = _op(asin, a)
-Base.atan(a::Bicomplex) = _op(atan, a)
-#Base.acos(a::Bicomplex) = - jm * log(a + sqrt(a^2 - 1))
-#Base.asin(a::Bicomplex) = - jm * log(jm * a + sqrt(1 - a^2))
-#Base.atan(a::Bicomplex) = asin(a / sqrt(1 + a^2))
-#Base.atan(a::Bicomplex) = jm * log((1 + jm * a) / (1 - jm * a))
-
-function derivative(f::T, x::Complex{U}, h=sqrt(eps(U))) where {T,U<:Real}
-  return (f(Bicomplex(x, Complex(h, 0)))).im / h
+for op ∈ (:sqrt, :cbrt, :exp, :log, :cos, :sin, :tan, :acos, :asin, :atan)
+  @eval Base.$op(x::Bicomplex) = _op($op, x)
 end
 
+function derivative(f::T, x::U, h=sqrt(eps(real(U)))) where {T,U<:Number}
+  return U(valuederivative(f, x, h)[2])
+end
+
+function valuederivative(f::T, x::U, h=sqrt(eps(real(U)))) where {T,U<:Number}
+  fx = f(Bicomplex(Complex(x), Complex(h)))
+  value = U(first(fx))
+  deriv = U(second(fx)) / h
+  return (value, deriv)
+end
+
+function valuederivatives(f::T, x::U, h=cbrt(eps(U))) where {T,U<:Real}
+  fx = f(Bicomplex(Complex(x, h), Complex(h, 0)))
+  value = real(first(fx))
+  firstderiv = imag(first(fx)) / h
+  secondderiv = imag(second(fx)) / h^2
+  return (value, firstderiv, secondderiv)
+end
+
+function secondderivative(f::T, x::U, h=cbrt(eps(U))) where {T,U<:Real}
+  return valuederivatives(f, x, h)[3]
+end
 

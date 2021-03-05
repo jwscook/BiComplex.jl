@@ -59,10 +59,26 @@ end
   end
 end
 
+@testset "second derivatives" begin
+  f(x) = exp(-x^2)
+  g(x) = -2 * x * f(x)
+  h(x) = -2 * f(x) - 2 * x * g(x)
+  for x ∈ (0.0, π / 5, 1e-16, 1e16), s ∈ (-1, 1)
+    x *= s
+    v, d1, d2 = BiComplex.valuederivatives(f, x)
+    @test isapprox(v, f(x), rtol=sqrt(eps()), atol=0)
+    @test isapprox(d1, g(x), rtol=sqrt(eps()), atol=0)
+    @test isapprox(d2, h(x), rtol=cbrt(eps()), atol=0)
+    @test d1 ≈ BiComplex.derivative(f, x)
+    @test d2 == BiComplex.secondderivative(f, x)
+  end
+end
+
 @testset "Promotion conversion, etc" begin
   @test Bicomplex(0.0 + 0im, 1 + 0im) == jm
   @test Bicomplex(0.0 + 0im, 0 + 1im) == jm * im
   @test Bicomplex(0.0 + 1im, 1 + 0im) == jm + im
+  @test Bicomplex(0.0 + 1im, 0 + 0im) == im
   @test jm * im == im * jm
   @test (jm * im)^2 == 1
   @test jm^2 == -1
