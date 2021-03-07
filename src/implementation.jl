@@ -82,18 +82,18 @@ for op ∈ (:sqrt, :cbrt, :exp, :log, :cos, :sin, :tan, :acos, :asin, :atan)
   @eval Base.$op(x::Bicomplex) = _op($op, x)
 end
 
-function derivative(f::T, x::U, h=sqrt(eps(real(U)))) where {T,U<:Number}
+function derivative(f::T, x::U, h=sqrt(eps(float(real(U))))) where {T,U<:Number}
   return U(valuederivative(f, x, h)[2])
 end
 
-function valuederivative(f::T, x::U, h=sqrt(eps(real(U)))) where {T,U<:Number}
+function valuederivative(f::T, x::U, h=sqrt(eps(float(real(U))))) where {T,U<:Number}
   fx = f(Bicomplex(Complex(x), Complex(h)))
   value = U(first(fx))
   deriv = U(second(fx)) / h
   return (value, deriv)
 end
 
-function valuederivatives(f::T, x::U, h=cbrt(eps(U))) where {T,U<:Real}
+function valuederivatives(f::T, x::U, h=cbrt(eps(float(U)))) where {T,U<:Real}
   fx = f(Bicomplex(Complex(x, h), Complex(h, 0)))
   value = real(first(fx))
   firstderiv = imag(first(fx)) / h
@@ -101,7 +101,7 @@ function valuederivatives(f::T, x::U, h=cbrt(eps(U))) where {T,U<:Real}
   return (value, firstderiv, secondderiv)
 end
 
-function secondderivative(f::T, x::U, h=cbrt(eps(U))) where {T,U<:Real}
+function secondderivative(f::T, x::U, h=cbrt(eps(float(U)))) where {T,U<:Real}
   return valuederivatives(f, x, h)[3]
 end
 
